@@ -4,7 +4,9 @@ const config = {
   photoBoyId: 'GANTI_DENGAN_FILE_ID_FOTO_COWO',
   photoGirlId: 'GANTI_DENGAN_FILE_ID_FOTO_CEWE',
   sendDelayMs: 2000,
-  forceSubChannels: []
+  forceSubChannels: [{@VZLfxs},
+                     {-1001999857761},
+                    ]
 };
 
 function validateConfig() {
