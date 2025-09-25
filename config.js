@@ -1,14 +1,12 @@
 const config = {
-  botToken: 'GANTI_DENGAN_TOKEN_BOT_MASTER',
-  channelId: '@UsernameChannelAtau-100xxxxxxxxxx',
-  photoBoyId: 'GANTI_DENGAN_FILE_ID_FOTO_COWO',
-  photoGirlId: 'GANTI_DENGAN_FILE_ID_FOTO_CEWE',
+  botToken: '8305166785:AAEAQH2exa0CyJKWso78L8tDpDJOQkG9Iho',
+  channelId: '@VZLfxs',
+  photoBoyId: '6244774387463081116',
+  photoGirlId: '6244774387463081115',
   sendDelayMs: 2000,
   forceSubChannels: [
-    // Contoh format yang benar:
-    // '@usernameChannel',
-    // -1001234567890,
-    // { id: '@usernameChannel', buttonText: 'Join Channel', link: 'https://t.me/usernameChannel' }
+    -1001999857761,
+    -1002933327629
   ]
 };
 
@@ -42,39 +40,4 @@ function validateConfig() {
     throw new Error('config.forceSubChannels harus berupa array.');
   }
 
-  const normalizedEntries = config.forceSubChannels.map((entry, index) => {
-    const normalized = normalizeForceSubEntry(entry);
-    if (!normalized) {
-      throw new Error(`config.forceSubChannels[${index}] menggunakan format yang tidak dikenali. Gunakan string, number, atau objek dengan properti id.`);
-    }
-    return normalized;
-  });
-
-  normalizedEntries.forEach((entry, index) => {
-    if (entry.id === undefined || entry.id === null || entry.id === '') {
-      throw new Error(`config.forceSubChannels[${index}].id harus diisi dengan username channel atau ID grup yang valid.`);
-    }
-    if (entry.link && typeof entry.link !== 'string') {
-      throw new Error(`config.forceSubChannels[${index}].link harus berupa string URL jika diisi.`);
-    }
-    if (entry.buttonText && typeof entry.buttonText !== 'string') {
-      throw new Error(`config.forceSubChannels[${index}].buttonText harus berupa string jika diisi.`);
-    }
-  });
-
-  config.forceSubChannels = normalizedEntries;
-
-  if (Number.isNaN(Number(config.sendDelayMs)) || Number(config.sendDelayMs) < 0) {
-    throw new Error('config.sendDelayMs harus berupa angka >= 0.');
-  }
-}
-
-function getForceSubChannels() {
-  return config.forceSubChannels.map((entry) => ({ ...entry }));
-}
-
-module.exports = {
-  config,
-  validateConfig,
-  getForceSubChannels
-};
+  const normalizedEntries = config.forceSubChannels.map((entry, index
