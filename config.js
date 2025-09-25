@@ -4,7 +4,7 @@ const config = {
   photoBoyId: '6244774387463081116',
   photoGirlId: '6244774387463081115',
   sendDelayMs: 2000,
-  forceSubChannels: [{@VZLfx},
+  forceSubChannels: [{-1002933327629},
                      {-1001999857761}
                     ]
 };
