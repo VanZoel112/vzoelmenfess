@@ -5,8 +5,18 @@ const config = {
   photoGirlId: '6244774387463081115',
   sendDelayMs: 2000,
   forceSubChannels: [
-    { id: -1001999857761 },
-    { id: -1002933327629 }
+    {
+      id: -1001999857761,
+      link: 'https://t.me/VZLfxs',
+      label: 'VZL Channel',
+      buttonText: 'Join VZL'
+    },
+    {
+      id: -1002933327629,
+      link: 'https://t.me/VZOELupdate',
+      label: 'VZOEL Updates',
+      buttonText: 'Join Updates'
+    }
   ]
 };
 
