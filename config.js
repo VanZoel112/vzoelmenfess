@@ -1,10 +1,10 @@
 const config = {
   botToken: '8305166785:AAEAQH2exa0CyJKWso78L8tDpDJOQkG9Iho',
-  channelId: '@VZLfxs',
+  channelId: '@VZLfx',
   photoBoyId: 'GANTI_DENGAN_FILE_ID_FOTO_COWO',
   photoGirlId: 'GANTI_DENGAN_FILE_ID_FOTO_CEWE',
   sendDelayMs: 2000,
-  forceSubChannels: [{@VZLfxs},
+  forceSubChannels: [{@VZLfx},
                      {-1001999857761}
                     ]
 };
