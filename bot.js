@@ -109,7 +109,7 @@ function chunkButtons(buttons, chunkSize) {
   return rows;
 }
 
-function buildForceSubButtons(entries) {
+function buildForceSubButtons(entries, includeRetry = true) {
   const buttons = entries
     .map((entry) => {
       const url = buildEntryUrl(entry);
@@ -129,18 +129,43 @@ function buildForceSubButtons(entries) {
     return null;
   }
 
-  return chunkButtons(buttons, 2);
+  // Group join buttons in rows of 2
+  const joinButtonRows = chunkButtons(buttons, 2);
+
+  // Add retry button if requested
+  if (includeRetry) {
+    const retryButton = [{
+      text: '🔄 Cek Lagi',
+      callback_data: 'retry_fsub_check'
+    }];
+
+    joinButtonRows.push(retryButton);
+  }
+
+  return joinButtonRows;
 }
 
 async function sendForceSubReminder(ctx, missingEntries) {
   const reminder = buildForceSubReminder(missingEntries);
   const inlineKeyboard = buildForceSubButtons(missingEntries);
 
+  // Enhanced message with clearer instructions
+  const enhancedMessage = `${reminder}
+
+📌 **Langkah-langkah:**
+1️⃣ Klik tombol channel/grup di bawah untuk join
+2️⃣ Pastikan sudah join semua channel yang diperlukan
+3️⃣ Klik tombol **🔄 Cek Lagi** untuk verifikasi
+4️⃣ Setelah terverifikasi, kirim ulang menfess Anda
+
+⚠️ Pesan menfess Anda akan otomatis diproses setelah bergabung di semua channel.`;
+
   if (inlineKeyboard) {
-    await ctx.reply(reminder, {
+    await ctx.reply(enhancedMessage, {
       reply_markup: {
         inline_keyboard: inlineKeyboard
-      }
+      },
+      parse_mode: 'Markdown'
     });
     return;
   }
@@ -302,6 +327,62 @@ bot.on('text', async (ctx) => {
   enqueueMenfess(photoToSend, caption);
 
   ctx.reply(`Sip! Menfess kamu berhasil masuk antrean ${hashtag} dan akan otomatis dikirim ke channel. lihat dichannel ya dan tunggu kalo belum kekirim.... auto menfess by @VZLfxs`);
+});
+
+// Callback handler untuk tombol "Cek Lagi"
+bot.action('retry_fsub_check', async (ctx) => {
+  try {
+    // Acknowledge the callback to remove loading state
+    await ctx.answerCbQuery('Mengecek status keanggotaan...');
+
+    // Check subscription status
+    const subscribed = await ensureSubscribed(ctx);
+
+    if (subscribed) {
+      // User is now subscribed to all channels
+      await ctx.editMessageText(`✅ **Verifikasi Berhasil!**
+
+Selamat! Anda sudah bergabung di semua channel yang diperlukan.
+
+🎭 **Sekarang Anda dapat:**
+• Kirim menfess dengan hashtag #boy atau #girl
+• Menfess akan otomatis masuk ke antrean
+• Pesan akan dikirim ke channel secara otomatis
+
+📝 **Contoh menfess:**
+\`#boy need fwb @usernamekamu!\`
+
+Silakan kirim menfess Anda sekarang! 😊`, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '📝 Kirim Menfess', switch_inline_query_current_chat: '' }
+          ]]
+        }
+      });
+    }
+    // If not subscribed, ensureSubscribed will automatically send the reminder with buttons
+  } catch (error) {
+    console.error('Error in retry_fsub_check:', error);
+    await ctx.answerCbQuery('Terjadi kesalahan. Silakan coba lagi.');
+  }
+});
+
+// Enhanced command untuk cek status langganan manual
+bot.command('cekfsub', async (ctx) => {
+  const subscribed = await ensureSubscribed(ctx);
+
+  if (subscribed) {
+    await ctx.reply(`✅ **Status Keanggotaan: LENGKAP**
+
+Anda sudah bergabung di semua channel yang diperlukan!
+Silakan kirim menfess Anda dengan hashtag #boy atau #girl.
+
+Contoh: \`#boy need fwb @usernamekamu!\``, {
+      parse_mode: 'Markdown'
+    });
+  }
+  // If not subscribed, ensureSubscribed will send the reminder automatically
 });
 
 bot.launch();
