@@ -40,4 +40,15 @@ function validateConfig() {
     throw new Error('config.forceSubChannels harus berupa array.');
   }
 
-  const normalizedEntries = config.forceSubChannels.map((entry, index
+  const normalizedEntries = config.forceSubChannels.map((entry, index) => {
+    const normalized = normalizeForceSubEntry(entry);
+    if (normalized === null) {
+      throw new Error(`config.forceSubChannels[${index}] tidak valid. Harus berupa string, number, atau object dengan property id/link.`);
+    }
+    return normalized;
+  });
+
+  config.forceSubChannels = normalizedEntries;
+}
+
+module.exports = { config, validateConfig };
