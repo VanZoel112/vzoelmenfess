@@ -5,8 +5,8 @@ const config = {
   photoGirlId: '6244774387463081115',
   sendDelayMs: 2000,
   forceSubChannels: [
-    {-1001999857761},
-    {-1002933327629}
+    { id: -1001999857761 },
+    { id: -1002933327629 }
   ]
 };
 
