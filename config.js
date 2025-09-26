@@ -6,19 +6,19 @@ const config = {
   sendDelayMs: 2000,
   forceSubChannels: [
     {
-      id: -1001999857761,
+      id: -1002933327629,
       link: 'https://t.me/VZLfx',
       label: 'VZL Channel',
       buttonText: 'Join VZL'
     },
     {
-      id: -1001785018008,
+      id: -1001999857761,
       link: 'https://t.me/+3_lpGQGGGeA2NWJl',
       label: 'BLACK PEARL BASE',
       buttonText: 'BASE'
     },
     {
-      id: -1002147483648,
+      id: -1001785018008,
       link: 'https://t.me/+PMltasdoltowMjBl',
       label: 'RAVE MUTUALAN',
       buttonText: 'RAVE'
