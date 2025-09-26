@@ -21,6 +21,7 @@ const allowedMemberStatuses = new Set(['creator', 'administrator', 'member', 're
 bot.use(async (ctx, next) => {
   // Only process private messages, ignore group/channel messages
   if (ctx.chat?.type !== 'private') {
+    console.log(`🚫 Ignoring message from ${ctx.chat?.type} chat (${ctx.chat?.id})`);
     return; // Don't respond to group/channel messages
   }
 
@@ -33,10 +34,14 @@ async function isUserSubscribed(telegram, channelId, userId) {
     const chatMember = await telegram.getChatMember(channelId, userId);
     const status = chatMember.status;
 
+    console.log(`👤 User ${userId} status in channel ${channelId}: ${status}`);
+
     // Check if user is subscribed (not kicked or left)
     return !['left', 'kicked'].includes(status);
 
   } catch (error) {
+    console.log(`🚫 Error checking subscription for user ${userId} in channel ${channelId}:`, error.response?.error_code, error.response?.description);
+
     // If user is not found or bot has no permission, consider as not subscribed
     if (error.response) {
       const errorCode = error.response.error_code;
@@ -215,6 +220,8 @@ async function ensureSubscribed(ctx) {
     return true;
   }
 
+  console.log(`🔍 [ensureSubscribed] Checking subscription for user ${ctx.from.id} (@${ctx.from.username})`);
+
   const missing = [];
 
   for (const entry of FORCE_SUB_CHANNELS) {
@@ -222,9 +229,14 @@ async function ensureSubscribed(ctx) {
     const isSubscribed = await isUserSubscribed(ctx.telegram, targetId, ctx.from.id);
 
     if (!isSubscribed) {
+      console.log(`❌ User not subscribed to ${entry.label}`);
       missing.push(entry);
+    } else {
+      console.log(`✅ User subscribed to ${entry.label}`);
     }
   }
+
+  console.log(`📊 Final missing channels: ${missing.length}`);
 
   if (missing.length > 0) {
     await sendForceSubReminder(ctx, missing);
@@ -251,25 +263,31 @@ async function processQueue() {
     const { photoId, caption } = pendingMenfess.shift();
 
     try {
+      console.log(`📤 Sending menfess to channel ${CHANNEL_ID}`);
       await bot.telegram.sendPhoto(CHANNEL_ID, photoId, {
         caption
       });
+      console.log(`✅ Successfully sent menfess to channel`);
     } catch (error) {
-      console.error('Gagal mengirim menfess ke channel:', error);
+      console.error('❌ Gagal mengirim menfess ke channel:', error);
     }
 
     if (pendingMenfess.length > 0 && SEND_DELAY_MS > 0) {
+      console.log(`⏳ Waiting ${SEND_DELAY_MS}ms before next menfess...`);
       await wait(SEND_DELAY_MS);
     }
   }
 
+  console.log(`📋 Queue processing complete. isSending = false`);
   isSending = false;
 }
 
 function enqueueMenfess(photoId, caption) {
+  console.log(`📥 Adding menfess to queue. Queue length: ${pendingMenfess.length + 1}`);
   pendingMenfess.push({ photoId, caption });
+  console.log(`🚀 Starting queue processing...`);
   processQueue().catch((error) => {
-    console.error('Kesalahan saat memproses antrean menfess:', error);
+    console.error('❌ Kesalahan saat memproses antrean menfess:', error);
   });
 }
 
@@ -378,14 +396,21 @@ async function checkSubscriptionFromCallback(ctx) {
 
   const missing = [];
 
+  console.log(`🔍 [Callback] Checking subscription for user ${ctx.from.id} (@${ctx.from.username})`);
+
   for (const entry of FORCE_SUB_CHANNELS) {
     const targetId = entry.id;
     const isSubscribed = await isUserSubscribed(ctx.telegram, targetId, ctx.from.id);
 
     if (!isSubscribed) {
+      console.log(`❌ [Callback] User not subscribed to ${entry.label}`);
       missing.push(entry);
+    } else {
+      console.log(`✅ [Callback] User subscribed to ${entry.label}`);
     }
   }
+
+  console.log(`📊 [Callback] Final missing channels: ${missing.length}`);
 
   if (missing.length > 0) {
     // Update message with new reminder and buttons, but handle "not modified" error
