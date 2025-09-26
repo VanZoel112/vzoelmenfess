@@ -18,7 +18,7 @@ const config = {
       buttonText: 'BASE'
     },
     {
-      id: -1001999857761,
+      id: -1002147483648,
       link: 'https://t.me/+PMltasdoltowMjBl',
       label: 'RAVE MUTUALAN',
       buttonText: 'RAVE'
