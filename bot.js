@@ -21,7 +21,6 @@ const allowedMemberStatuses = new Set(['creator', 'administrator', 'member', 're
 bot.use(async (ctx, next) => {
   // Only process private messages, ignore group/channel messages
   if (ctx.chat?.type !== 'private') {
-    console.log(`🚫 Ignoring message from ${ctx.chat?.type} chat (${ctx.chat?.id})`);
     return; // Don't respond to group/channel messages
   }
 
@@ -31,49 +30,25 @@ bot.use(async (ctx, next) => {
 // Robust function to check if user is subscribed to a channel
 async function isUserSubscribed(telegram, channelId, userId) {
   try {
-    console.log(`🔍 Checking user ${userId} in channel ${channelId}`);
-
     const chatMember = await telegram.getChatMember(channelId, userId);
-    console.log(`📋 Raw API response:`, JSON.stringify(chatMember, null, 2));
-
     const status = chatMember.status;
-    console.log(`👤 Member status: ${status}`);
 
     // Check if user is subscribed (not kicked or left)
-    const isSubscribed = !['left', 'kicked'].includes(status);
-    console.log(`✅ Is subscribed: ${isSubscribed} (status: ${status})`);
-
-    return isSubscribed;
+    return !['left', 'kicked'].includes(status);
 
   } catch (error) {
-    console.log(`🚫 Error checking subscription:`, error.response?.error_code, error.response?.description);
-
     // If user is not found or bot has no permission, consider as not subscribed
     if (error.response) {
       const errorCode = error.response.error_code;
       const description = error.response.description || '';
 
-      // Common error codes:
-      // 400: Bad Request - user not found, invalid chat id, etc.
-      // 403: Forbidden - bot doesn't have permission
-      if (errorCode === 400 && description.includes('user not found')) {
-        console.log(`❌ User not found in channel - considering as not subscribed`);
-        return false;
-      }
-
-      if (errorCode === 400 && description.includes('chat not found')) {
-        console.log(`❌ Channel not found - considering as not subscribed`);
-        return false;
-      }
-
-      if (errorCode === 403) {
-        console.log(`❌ Bot forbidden to check this channel - considering as not subscribed`);
+      // Common error cases - all result in not subscribed
+      if (errorCode === 400 || errorCode === 403) {
         return false;
       }
     }
 
     // For any other error, assume not subscribed to be safe
-    console.log(`❌ Unknown error - considering as not subscribed for safety`);
     return false;
   }
 }
@@ -240,26 +215,16 @@ async function ensureSubscribed(ctx) {
     return true;
   }
 
-  console.log(`🔍 [ensureSubscribed] Checking subscription for user ${ctx.from.id} (@${ctx.from.username})`);
-
   const missing = [];
 
   for (const entry of FORCE_SUB_CHANNELS) {
     const targetId = entry.id;
-
-    console.log(`📋 [ensureSubscribed] Checking channel: ${entry.label} (ID: ${targetId})`);
-
     const isSubscribed = await isUserSubscribed(ctx.telegram, targetId, ctx.from.id);
 
     if (!isSubscribed) {
-      console.log(`❌ [ensureSubscribed] User not subscribed to ${entry.label}`);
       missing.push(entry);
-    } else {
-      console.log(`✅ [ensureSubscribed] User subscribed to ${entry.label}`);
     }
   }
-
-  console.log(`📊 [ensureSubscribed] Final missing channels: ${missing.length}`, missing.map(e => e.label));
 
   if (missing.length > 0) {
     await sendForceSubReminder(ctx, missing);
@@ -286,35 +251,25 @@ async function processQueue() {
     const { photoId, caption } = pendingMenfess.shift();
 
     try {
-      console.log(`📤 Sending menfess to channel ${CHANNEL_ID}`);
-      console.log(`📷 Photo ID: ${photoId}`);
-      console.log(`📝 Caption: ${caption}`);
-
       await bot.telegram.sendPhoto(CHANNEL_ID, photoId, {
         caption
       });
-
-      console.log(`✅ Successfully sent menfess to channel`);
     } catch (error) {
-      console.error('❌ Gagal mengirim menfess ke channel:', error);
+      console.error('Gagal mengirim menfess ke channel:', error);
     }
 
     if (pendingMenfess.length > 0 && SEND_DELAY_MS > 0) {
-      console.log(`⏳ Waiting ${SEND_DELAY_MS}ms before next menfess...`);
       await wait(SEND_DELAY_MS);
     }
   }
 
-  console.log(`📋 Queue processing complete. isSending = false`);
   isSending = false;
 }
 
 function enqueueMenfess(photoId, caption) {
-  console.log(`📥 Adding menfess to queue. Queue length: ${pendingMenfess.length + 1}`);
   pendingMenfess.push({ photoId, caption });
-  console.log(`🚀 Starting queue processing...`);
   processQueue().catch((error) => {
-    console.error('❌ Kesalahan saat memproses antrean menfess:', error);
+    console.error('Kesalahan saat memproses antrean menfess:', error);
   });
 }
 
@@ -344,18 +299,20 @@ function buildJoinLine() {
 bot.start(async (ctx) => {
   await ctx.reply(`Halo! Black Pearl Bot siap menerima menfess.
 
-🔒 **Bot ini hanya bekerja di private chat untuk menjaga privasi kamu.**
+🔒 Bot ini hanya bekerja di private chat untuk menjaga privasi kamu.
 
-Ketik /help buat lihat panduan lengkapnya.`);
+Ketik /help buat lihat panduan lengkapnya.
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
 });
 
 bot.help(async (ctx) => {
   const joinLine = buildJoinLine();
 
   const helpMessage = [
-    '📖 **Panduan Kirim Menfess:**',
+    '📖 Panduan Kirim Menfess:',
     '',
-    '🔒 **PENTING:** Bot ini hanya bekerja di private chat!',
+    '🔒 PENTING: Bot ini hanya bekerja di private chat!',
     '⚠️ Jangan kirim perintah di grup atau channel.',
     '',
     joinLine,
@@ -363,14 +320,16 @@ bot.help(async (ctx) => {
     '- Sertakan salah satu hashtag #boy atau #girl di pesan menfess.',
     '- Setelah terkirim, bot bakal mengirimkan menfess kamu ke channel secara bergantian.',
     '',
-    '📝 **Contoh:** #boy need fwb @usernamekamu!',
+    '📝 Contoh: #boy need fwb @usernamekamu!',
     '',
-    '💡 **Tips:** Kirim menfess hanya di chat private dengan bot ini untuk menjaga privasi kamu.'
+    '💡 Tips: Kirim menfess hanya di chat private dengan bot ini untuk menjaga privasi kamu.',
+    '',
+    '🤖 AutoFess dan FSub by Vzoel Fox\'s'
   ]
     .filter(Boolean)
     .join('\n');
 
-  await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
+  await ctx.reply(helpMessage);
 });
 
 bot.on('text', async (ctx) => {
@@ -406,7 +365,9 @@ bot.on('text', async (ctx) => {
 
   enqueueMenfess(photoToSend, caption);
 
-  ctx.reply(`Sip! Menfess kamu berhasil masuk antrean ${hashtag} dan akan otomatis dikirim ke channel. lihat dichannel ya dan tunggu kalo belum kekirim.... auto menfess by @VZLfxs`);
+  ctx.reply(`Sip! Menfess kamu berhasil masuk antrean ${hashtag} dan akan otomatis dikirim ke channel. lihat dichannel ya dan tunggu kalo belum kekirim.
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
 });
 
 // Function untuk check subscription dari callback context
@@ -417,24 +378,14 @@ async function checkSubscriptionFromCallback(ctx) {
 
   const missing = [];
 
-  console.log(`🔍 [Callback] Checking subscription for user ${ctx.from.id} (@${ctx.from.username})`);
-
   for (const entry of FORCE_SUB_CHANNELS) {
     const targetId = entry.id;
-
-    console.log(`📋 [Callback] Checking channel: ${entry.label} (ID: ${targetId})`);
-
     const isSubscribed = await isUserSubscribed(ctx.telegram, targetId, ctx.from.id);
 
     if (!isSubscribed) {
-      console.log(`❌ [Callback] User not subscribed to ${entry.label}`);
       missing.push(entry);
-    } else {
-      console.log(`✅ [Callback] User subscribed to ${entry.label}`);
     }
   }
-
-  console.log(`📊 Final missing channels: ${missing.length}`, missing.map(e => e.label));
 
   if (missing.length > 0) {
     // Update message with new reminder and buttons, but handle "not modified" error
@@ -487,20 +438,21 @@ bot.action('retry_fsub_check', async (ctx) => {
     if (subscribed) {
       // User is now subscribed to all channels
       await ctx.answerCbQuery('✅ Verifikasi berhasil!');
-      await ctx.editMessageText(`✅ **Verifikasi Berhasil!**
+      await ctx.editMessageText(`✅ Verifikasi Berhasil!
 
 Selamat! Anda sudah bergabung di semua channel yang diperlukan.
 
-🎭 **Sekarang Anda dapat:**
+🎭 Sekarang Anda dapat:
 • Kirim menfess dengan hashtag #boy atau #girl
 • Menfess akan otomatis masuk ke antrean
 • Pesan akan dikirim ke channel secara otomatis
 
-📝 **Contoh menfess:**
-\`#boy need fwb @usernamekamu!\`
+📝 Contoh menfess:
+#boy need fwb @usernamekamu!
 
-Silakan kirim menfess Anda sekarang! 😊`, {
-        parse_mode: 'Markdown',
+Silakan kirim menfess Anda sekarang! 😊
+
+🤖 AutoFess dan FSub by Vzoel Fox's`, {
         reply_markup: {
           inline_keyboard: [[
             { text: '📝 Kirim Menfess', switch_inline_query_current_chat: '' }
@@ -521,14 +473,14 @@ bot.command('cekfsub', async (ctx) => {
   const subscribed = await ensureSubscribed(ctx);
 
   if (subscribed) {
-    await ctx.reply(`✅ **Status Keanggotaan: LENGKAP**
+    await ctx.reply(`✅ Status Keanggotaan: LENGKAP
 
 Anda sudah bergabung di semua channel yang diperlukan!
 Silakan kirim menfess Anda dengan hashtag #boy atau #girl.
 
-Contoh: \`#boy need fwb @usernamekamu!\``, {
-      parse_mode: 'Markdown'
-    });
+Contoh: #boy need fwb @usernamekamu!
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
   }
   // If not subscribed, ensureSubscribed will send the reminder automatically
 });
