@@ -359,10 +359,11 @@ async function checkSubscriptionFromCallback(ctx) {
   }
 
   if (missing.length > 0) {
-    // Update message with new reminder and buttons
+    // Update message with new reminder and buttons, but handle "not modified" error
     const reminder = buildForceSubReminder(missing);
     const inlineKeyboard = buildForceSubButtons(missing);
 
+    const timestamp = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
     const enhancedMessage = `${reminder}
 
 📌 **Langkah-langkah:**
@@ -371,14 +372,28 @@ async function checkSubscriptionFromCallback(ctx) {
 3️⃣ Klik tombol **🔄 Cek Lagi** untuk verifikasi
 4️⃣ Setelah terverifikasi, kirim ulang menfess Anda
 
-⚠️ Pesan menfess Anda akan otomatis diproses setelah bergabung di semua channel.`;
+⚠️ Pesan menfess Anda akan otomatis diproses setelah bergabung di semua channel.
 
-    await ctx.editMessageText(enhancedMessage, {
-      reply_markup: {
-        inline_keyboard: inlineKeyboard
-      },
-      parse_mode: 'Markdown'
-    });
+🕒 Dicek pada: ${timestamp}`;
+
+    try {
+      await ctx.editMessageText(enhancedMessage, {
+        reply_markup: {
+          inline_keyboard: inlineKeyboard
+        },
+        parse_mode: 'Markdown'
+      });
+    } catch (error) {
+      // Handle "message not modified" error specifically
+      if (error.response && error.response.error_code === 400 &&
+          error.response.description.includes('message is not modified')) {
+        // Message content is identical, just answer the callback
+        await ctx.answerCbQuery('✅ Status sudah dicek! Kamu masih belum join semua channel yang diperlukan.');
+        return false;
+      }
+      // Re-throw other errors
+      throw error;
+    }
     return false;
   }
 
@@ -388,14 +403,12 @@ async function checkSubscriptionFromCallback(ctx) {
 // Callback handler untuk tombol "Cek Lagi"
 bot.action('retry_fsub_check', async (ctx) => {
   try {
-    // Acknowledge the callback to remove loading state
-    await ctx.answerCbQuery('Mengecek status keanggotaan...');
-
     // Check subscription status using callback-specific function
     const subscribed = await checkSubscriptionFromCallback(ctx);
 
     if (subscribed) {
       // User is now subscribed to all channels
+      await ctx.answerCbQuery('✅ Verifikasi berhasil!');
       await ctx.editMessageText(`✅ **Verifikasi Berhasil!**
 
 Selamat! Anda sudah bergabung di semua channel yang diperlukan.
@@ -416,8 +429,9 @@ Silakan kirim menfess Anda sekarang! 😊`, {
           ]]
         }
       });
+    } else {
+      // If not subscribed, checkSubscriptionFromCallback handles the message update and callback answer
     }
-    // If not subscribed, checkSubscriptionFromCallback will update the message with new buttons
   } catch (error) {
     console.error('Error in retry_fsub_check:', error);
     await ctx.answerCbQuery('Terjadi kesalahan. Silakan coba lagi.');
