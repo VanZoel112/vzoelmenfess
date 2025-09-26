@@ -14,14 +14,14 @@ const config = {
     {
       id: -1001785018008,
       link: 'https://t.me/+3_lpGQGGGeA2NWJl',
-      label: 'RAVE MUTUALAN',
-      buttonText: 'RAVE'
+      label: 'BLACK PEARL BASE',
+      buttonText: 'BASE'
     },
     {
       id: -1001999857761,
       link: 'https://t.me/+PMltasdoltowMjBl',
-      label: 'BLACK PEARL BASE',
-      buttonText: 'BASE'
+      label: 'RAVE MUTUALAN',
+      buttonText: 'RAVE'
     }
   ]
 };
