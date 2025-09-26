@@ -12,10 +12,16 @@ const config = {
       buttonText: 'Join VZL'
     },
     {
-      id: -1002933327629,
-      link: 'https://t.me/VZOELupdate',
-      label: 'VZOEL Updates',
-      buttonText: 'Join Updates'
+      id: -1001785018008,
+      link: 'https://t.me/+3_lpGQGGGeA2NWJl',
+      label: 'RAVE MUTUALAN',
+      buttonText: 'RAVE'
+    },
+    {
+      id: -1001999857761,
+      link: 'https://t.me/+PMltasdoltowMjBl',
+      label: 'BLACK PEARL BASE',
+      buttonText: 'BASE'
     }
   ]
 };
