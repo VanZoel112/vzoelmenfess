@@ -329,14 +329,70 @@ bot.on('text', async (ctx) => {
   ctx.reply(`Sip! Menfess kamu berhasil masuk antrean ${hashtag} dan akan otomatis dikirim ke channel. lihat dichannel ya dan tunggu kalo belum kekirim.... auto menfess by @VZLfxs`);
 });
 
+// Function untuk check subscription dari callback context
+async function checkSubscriptionFromCallback(ctx) {
+  if (FORCE_SUB_CHANNELS.length === 0) {
+    return true;
+  }
+
+  const missing = [];
+
+  for (const entry of FORCE_SUB_CHANNELS) {
+    const targetId = entry.id;
+
+    try {
+      const member = await ctx.telegram.getChatMember(targetId, ctx.from.id);
+
+      if (!allowedMemberStatuses.has(member.status)) {
+        missing.push(entry);
+      }
+    } catch (error) {
+      if (error.response && error.response.error_code === 400) {
+        missing.push(entry);
+        continue;
+      }
+
+      console.error('Gagal memeriksa keanggotaan channel:', error);
+      await ctx.answerCbQuery('Maaf, bot lagi nggak bisa cek keanggotaan kamu. Coba lagi nanti ya.');
+      return false;
+    }
+  }
+
+  if (missing.length > 0) {
+    // Update message with new reminder and buttons
+    const reminder = buildForceSubReminder(missing);
+    const inlineKeyboard = buildForceSubButtons(missing);
+
+    const enhancedMessage = `${reminder}
+
+📌 **Langkah-langkah:**
+1️⃣ Klik tombol channel/grup di bawah untuk join
+2️⃣ Pastikan sudah join semua channel yang diperlukan
+3️⃣ Klik tombol **🔄 Cek Lagi** untuk verifikasi
+4️⃣ Setelah terverifikasi, kirim ulang menfess Anda
+
+⚠️ Pesan menfess Anda akan otomatis diproses setelah bergabung di semua channel.`;
+
+    await ctx.editMessageText(enhancedMessage, {
+      reply_markup: {
+        inline_keyboard: inlineKeyboard
+      },
+      parse_mode: 'Markdown'
+    });
+    return false;
+  }
+
+  return true;
+}
+
 // Callback handler untuk tombol "Cek Lagi"
 bot.action('retry_fsub_check', async (ctx) => {
   try {
     // Acknowledge the callback to remove loading state
     await ctx.answerCbQuery('Mengecek status keanggotaan...');
 
-    // Check subscription status
-    const subscribed = await ensureSubscribed(ctx);
+    // Check subscription status using callback-specific function
+    const subscribed = await checkSubscriptionFromCallback(ctx);
 
     if (subscribed) {
       // User is now subscribed to all channels
@@ -361,7 +417,7 @@ Silakan kirim menfess Anda sekarang! 😊`, {
         }
       });
     }
-    // If not subscribed, ensureSubscribed will automatically send the reminder with buttons
+    // If not subscribed, checkSubscriptionFromCallback will update the message with new buttons
   } catch (error) {
     console.error('Error in retry_fsub_check:', error);
     await ctx.answerCbQuery('Terjadi kesalahan. Silakan coba lagi.');
