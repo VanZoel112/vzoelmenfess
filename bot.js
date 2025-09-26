@@ -17,6 +17,17 @@ const bot = new Telegraf(BOT_TOKEN);
 // More comprehensive member status check - including restricted users who can still be "members"
 const allowedMemberStatuses = new Set(['creator', 'administrator', 'member', 'restricted']);
 
+// Middleware: Only allow private chats
+bot.use(async (ctx, next) => {
+  // Only process private messages, ignore group/channel messages
+  if (ctx.chat?.type !== 'private') {
+    console.log(`🚫 Ignoring message from ${ctx.chat?.type} chat (${ctx.chat?.id})`);
+    return; // Don't respond to group/channel messages
+  }
+
+  await next(); // Continue to next middleware/handler
+});
+
 // Robust function to check if user is subscribed to a channel
 async function isUserSubscribed(telegram, channelId, userId) {
   try {
@@ -321,25 +332,35 @@ function buildJoinLine() {
 }
 
 bot.start(async (ctx) => {
-  await ctx.reply('Halo! Black Pearl Bot siap menerima menfess. Ketik /help buat lihat panduan lengkapnya.');
+  await ctx.reply(`Halo! Black Pearl Bot siap menerima menfess.
+
+🔒 **Bot ini hanya bekerja di private chat untuk menjaga privasi kamu.**
+
+Ketik /help buat lihat panduan lengkapnya.`);
 });
 
 bot.help(async (ctx) => {
   const joinLine = buildJoinLine();
 
   const helpMessage = [
-    'Panduan kirim menfess:',
+    '📖 **Panduan Kirim Menfess:**',
+    '',
+    '🔒 **PENTING:** Bot ini hanya bekerja di private chat!',
+    '⚠️ Jangan kirim perintah di grup atau channel.',
+    '',
     joinLine,
     '- Pastikan kamu sudah punya username Telegram.',
     '- Sertakan salah satu hashtag #boy atau #girl di pesan menfess.',
     '- Setelah terkirim, bot bakal mengirimkan menfess kamu ke channel secara bergantian.',
     '',
-    'Contoh: #boy need fwb @usernamekamu!'
+    '📝 **Contoh:** #boy need fwb @usernamekamu!',
+    '',
+    '💡 **Tips:** Kirim menfess hanya di chat private dengan bot ini untuk menjaga privasi kamu.'
   ]
     .filter(Boolean)
     .join('\n');
 
-  await ctx.reply(helpMessage);
+  await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
 });
 
 bot.on('text', async (ctx) => {
