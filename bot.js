@@ -286,25 +286,35 @@ async function processQueue() {
     const { photoId, caption } = pendingMenfess.shift();
 
     try {
+      console.log(`📤 Sending menfess to channel ${CHANNEL_ID}`);
+      console.log(`📷 Photo ID: ${photoId}`);
+      console.log(`📝 Caption: ${caption}`);
+
       await bot.telegram.sendPhoto(CHANNEL_ID, photoId, {
         caption
       });
+
+      console.log(`✅ Successfully sent menfess to channel`);
     } catch (error) {
-      console.error('Gagal mengirim menfess ke channel:', error);
+      console.error('❌ Gagal mengirim menfess ke channel:', error);
     }
 
     if (pendingMenfess.length > 0 && SEND_DELAY_MS > 0) {
+      console.log(`⏳ Waiting ${SEND_DELAY_MS}ms before next menfess...`);
       await wait(SEND_DELAY_MS);
     }
   }
 
+  console.log(`📋 Queue processing complete. isSending = false`);
   isSending = false;
 }
 
 function enqueueMenfess(photoId, caption) {
+  console.log(`📥 Adding menfess to queue. Queue length: ${pendingMenfess.length + 1}`);
   pendingMenfess.push({ photoId, caption });
+  console.log(`🚀 Starting queue processing...`);
   processQueue().catch((error) => {
-    console.error('Kesalahan saat memproses antrean menfess:', error);
+    console.error('❌ Kesalahan saat memproses antrean menfess:', error);
   });
 }
 
