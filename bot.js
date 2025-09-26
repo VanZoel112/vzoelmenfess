@@ -14,7 +14,58 @@ const pendingMenfess = [];
 let isSending = false;
 
 const bot = new Telegraf(BOT_TOKEN);
-const allowedMemberStatuses = new Set(['creator', 'administrator', 'member']);
+// More comprehensive member status check - including restricted users who can still be "members"
+const allowedMemberStatuses = new Set(['creator', 'administrator', 'member', 'restricted']);
+
+// Robust function to check if user is subscribed to a channel
+async function isUserSubscribed(telegram, channelId, userId) {
+  try {
+    console.log(`🔍 Checking user ${userId} in channel ${channelId}`);
+
+    const chatMember = await telegram.getChatMember(channelId, userId);
+    console.log(`📋 Raw API response:`, JSON.stringify(chatMember, null, 2));
+
+    const status = chatMember.status;
+    console.log(`👤 Member status: ${status}`);
+
+    // Check if user is subscribed (not kicked or left)
+    const isSubscribed = !['left', 'kicked'].includes(status);
+    console.log(`✅ Is subscribed: ${isSubscribed} (status: ${status})`);
+
+    return isSubscribed;
+
+  } catch (error) {
+    console.log(`🚫 Error checking subscription:`, error.response?.error_code, error.response?.description);
+
+    // If user is not found or bot has no permission, consider as not subscribed
+    if (error.response) {
+      const errorCode = error.response.error_code;
+      const description = error.response.description || '';
+
+      // Common error codes:
+      // 400: Bad Request - user not found, invalid chat id, etc.
+      // 403: Forbidden - bot doesn't have permission
+      if (errorCode === 400 && description.includes('user not found')) {
+        console.log(`❌ User not found in channel - considering as not subscribed`);
+        return false;
+      }
+
+      if (errorCode === 400 && description.includes('chat not found')) {
+        console.log(`❌ Channel not found - considering as not subscribed`);
+        return false;
+      }
+
+      if (errorCode === 403) {
+        console.log(`❌ Bot forbidden to check this channel - considering as not subscribed`);
+        return false;
+      }
+    }
+
+    // For any other error, assume not subscribed to be safe
+    console.log(`❌ Unknown error - considering as not subscribed for safety`);
+    return false;
+  }
+}
 
 function formatForceSubEntry(entry) {
   if (!entry) {
@@ -178,28 +229,26 @@ async function ensureSubscribed(ctx) {
     return true;
   }
 
+  console.log(`🔍 [ensureSubscribed] Checking subscription for user ${ctx.from.id} (@${ctx.from.username})`);
+
   const missing = [];
 
   for (const entry of FORCE_SUB_CHANNELS) {
     const targetId = entry.id;
 
-    try {
-      const member = await ctx.telegram.getChatMember(targetId, ctx.from.id);
+    console.log(`📋 [ensureSubscribed] Checking channel: ${entry.label} (ID: ${targetId})`);
 
-      if (!allowedMemberStatuses.has(member.status)) {
-        missing.push(entry);
-      }
-    } catch (error) {
-      if (error.response && error.response.error_code === 400) {
-        missing.push(entry);
-        continue;
-      }
+    const isSubscribed = await isUserSubscribed(ctx.telegram, targetId, ctx.from.id);
 
-      console.error('Gagal memeriksa keanggotaan channel:', error);
-      await ctx.reply('Maaf, bot lagi nggak bisa cek keanggotaan kamu. Coba lagi nanti ya.');
-      return false;
+    if (!isSubscribed) {
+      console.log(`❌ [ensureSubscribed] User not subscribed to ${entry.label}`);
+      missing.push(entry);
+    } else {
+      console.log(`✅ [ensureSubscribed] User subscribed to ${entry.label}`);
     }
   }
+
+  console.log(`📊 [ensureSubscribed] Final missing channels: ${missing.length}`, missing.map(e => e.label));
 
   if (missing.length > 0) {
     await sendForceSubReminder(ctx, missing);
@@ -337,26 +386,24 @@ async function checkSubscriptionFromCallback(ctx) {
 
   const missing = [];
 
+  console.log(`🔍 [Callback] Checking subscription for user ${ctx.from.id} (@${ctx.from.username})`);
+
   for (const entry of FORCE_SUB_CHANNELS) {
     const targetId = entry.id;
 
-    try {
-      const member = await ctx.telegram.getChatMember(targetId, ctx.from.id);
+    console.log(`📋 [Callback] Checking channel: ${entry.label} (ID: ${targetId})`);
 
-      if (!allowedMemberStatuses.has(member.status)) {
-        missing.push(entry);
-      }
-    } catch (error) {
-      if (error.response && error.response.error_code === 400) {
-        missing.push(entry);
-        continue;
-      }
+    const isSubscribed = await isUserSubscribed(ctx.telegram, targetId, ctx.from.id);
 
-      console.error('Gagal memeriksa keanggotaan channel:', error);
-      await ctx.answerCbQuery('Maaf, bot lagi nggak bisa cek keanggotaan kamu. Coba lagi nanti ya.');
-      return false;
+    if (!isSubscribed) {
+      console.log(`❌ [Callback] User not subscribed to ${entry.label}`);
+      missing.push(entry);
+    } else {
+      console.log(`✅ [Callback] User subscribed to ${entry.label}`);
     }
   }
+
+  console.log(`📊 Final missing channels: ${missing.length}`, missing.map(e => e.label));
 
   if (missing.length > 0) {
     // Update message with new reminder and buttons, but handle "not modified" error
