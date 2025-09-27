@@ -16,12 +16,6 @@ const config = {
       link: 'https://t.me/+3_lpGQGGGeA2NWJl',
       label: 'BLACK PEARL BASE',
       buttonText: 'BASE'
-    },
-    {
-      id: -1001785018008,
-      link: 'https://t.me/+PMltasdoltowMjBl',
-      label: 'RAVE MUTUALAN',
-      buttonText: 'RAVE'
     }
   ]
 };
