@@ -5,11 +5,11 @@ validateConfig();
 
 const BOT_TOKEN = config.botToken;
 const CHANNEL_ID = config.channelId;
-const PHOTO_BOY = config.photoBoyId;
-const PHOTO_GIRL = config.photoGirlId;
+let PHOTO_BOY = config.photoBoyId;
+let PHOTO_GIRL = config.photoGirlId;
 const SEND_DELAY_MS = Number(config.sendDelayMs || 0);
 const FORCE_SUB_CHANNELS = Array.isArray(config.forceSubChannels) ? config.forceSubChannels : [];
-const PHOTO_FALLBACK = config.photoFallback || { enabled: false, strategy: 'text' };
+const OWNER_ID = config.ownerId;
 
 // Debug logging for configuration
 console.log('🔧 Bot Configuration:');
@@ -17,7 +17,7 @@ console.log(`📺 CHANNEL_ID: ${CHANNEL_ID}`);
 console.log(`👦 PHOTO_BOY: ${PHOTO_BOY}`);
 console.log(`👧 PHOTO_GIRL: ${PHOTO_GIRL}`);
 console.log(`⏱️ SEND_DELAY_MS: ${SEND_DELAY_MS}`);
-console.log(`🛡️ PHOTO_FALLBACK: ${PHOTO_FALLBACK.enabled ? 'ENABLED' : 'DISABLED'} (strategy: ${PHOTO_FALLBACK.strategy})`);
+console.log(`👑 OWNER_ID: ${OWNER_ID}`);
 console.log(`📋 FORCE_SUB_CHANNELS: ${FORCE_SUB_CHANNELS.length} channels`);
 FORCE_SUB_CHANNELS.forEach((channel, index) => {
   console.log(`  ${index + 1}. ${channel.label} (${channel.id})`);
@@ -265,58 +265,6 @@ async function wait(ms) {
   });
 }
 
-// Function untuk handle photo fallback strategies
-async function handlePhotoFallback(caption, originalPhotoId, error) {
-  if (!PHOTO_FALLBACK.enabled) {
-    console.log('🚫 Photo fallback disabled, skipping menfess');
-    return false;
-  }
-
-  console.log(`🔄 Executing fallback strategy: ${PHOTO_FALLBACK.strategy}`);
-
-  switch (PHOTO_FALLBACK.strategy) {
-    case 'text':
-      try {
-        await bot.telegram.sendMessage(CHANNEL_ID, caption);
-        console.log(`✅ Fallback successful: Sent as text message`);
-        return true;
-      } catch (textError) {
-        console.error('❌ Text fallback failed:', textError);
-        return false;
-      }
-
-    case 'default_photo':
-      try {
-        const defaultUrl = PHOTO_FALLBACK.defaultPhotoUrl || 'https://via.placeholder.com/400x400/1e3a8a/ffffff?text=MENFESS';
-        await bot.telegram.sendPhoto(CHANNEL_ID, defaultUrl, { caption });
-        console.log(`✅ Fallback successful: Sent with default photo`);
-        return true;
-      } catch (defaultPhotoError) {
-        console.error('❌ Default photo fallback failed, trying text:', defaultPhotoError);
-        // Fallback to text if default photo fails
-        try {
-          await bot.telegram.sendMessage(CHANNEL_ID, caption);
-          console.log(`✅ Secondary fallback: Sent as text`);
-          return true;
-        } catch (textError) {
-          console.error('❌ All fallbacks failed:', textError);
-          return false;
-        }
-      }
-
-    case 'skip':
-      console.log(`⏭️ Skipping menfess due to photo error (strategy: skip)`);
-      return true; // Consider as successful skip
-
-    case 'retry':
-      console.log(`🔄 Retry strategy not implemented in this context`);
-      return false;
-
-    default:
-      console.error(`❌ Unknown fallback strategy: ${PHOTO_FALLBACK.strategy}`);
-      return false;
-  }
-}
 
 async function processQueue() {
   if (isSending) {
@@ -338,29 +286,26 @@ async function processQueue() {
     } catch (error) {
       console.error('❌ Gagal mengirim menfess ke channel dengan foto:', error);
 
-      // Check if it's a photo-related error and handle fallback
+      // Simple fallback: try sending as text if photo fails
       const isPhotoError = error.response?.description?.includes('wrong file identifier') ||
                           error.response?.description?.includes('wrong remote file identifier') ||
                           error.response?.description?.includes('wrong padding');
 
       if (isPhotoError) {
-        const fallbackSuccess = await handlePhotoFallback(caption, photoId, error);
+        console.log('🔄 Photo error detected, trying text fallback...');
+        try {
+          await bot.telegram.sendMessage(CHANNEL_ID, caption);
+          console.log(`✅ Fallback successful: Sent as text message`);
 
-        if (!fallbackSuccess) {
-          console.error('❌ All fallback strategies failed for this menfess');
-        }
-
-        // Notify admin if configured
-        if (PHOTO_FALLBACK.notifyAdmin) {
-          console.error('💡 ADMIN: Photo file ID needs attention!');
-          console.error('📝 Cara mendapatkan file ID yang benar:');
-          console.error('   1. Kirim foto ke bot via private chat');
-          console.error('   2. Bot akan reply dengan file ID yang benar');
-          console.error('   3. Copy file ID tersebut ke config.js');
-          console.error('   4. Restart bot');
+          console.error('💡 OWNER: Photo template needs update!');
+          console.error('📝 Gunakan /setting untuk update photo template:');
+          console.error('   1. Kirim foto ke bot untuk mendapatkan file ID');
+          console.error('   2. Gunakan /setting boy [file_id] atau /setting girl [file_id]');
+        } catch (textError) {
+          console.error('❌ Text fallback also failed:', textError);
         }
       } else {
-        console.error('❌ Non-photo related error, skipping fallback');
+        console.error('❌ Non-photo related error, cannot fallback');
       }
     }
 
@@ -605,26 +550,35 @@ bot.on('photo', async (ctx) => {
   });
 });
 
-// Admin commands untuk manage fallback settings
-bot.command('fallback', async (ctx) => {
+// Owner-only setting command untuk manage photo templates
+bot.command('setting', async (ctx) => {
+  // Check if user is owner
+  if (ctx.from.id !== OWNER_ID) {
+    await ctx.reply('❌ Command ini hanya untuk owner bot.');
+    return;
+  }
+
   const args = ctx.message.text.split(' ').slice(1);
 
   if (args.length === 0) {
-    // Show current fallback status
-    await ctx.reply(`🛡️ **Photo Fallback Settings:**
+    // Show current photo settings
+    await ctx.reply(`⚙️ **Bot Photo Settings:**
 
-📊 **Status:** ${PHOTO_FALLBACK.enabled ? '✅ ENABLED' : '❌ DISABLED'}
-🔄 **Strategy:** ${PHOTO_FALLBACK.strategy}
-🔔 **Admin Notify:** ${PHOTO_FALLBACK.notifyAdmin ? 'YES' : 'NO'}
-🖼️ **Default Photo:** ${PHOTO_FALLBACK.defaultPhotoUrl ? 'SET' : 'NOT SET'}
+👦 **Photo Boy ID:**
+\`${PHOTO_BOY}\`
+
+👧 **Photo Girl ID:**
+\`${PHOTO_GIRL}\`
 
 📝 **Available Commands:**
-\`/fallback enable\` - Enable fallback system
-\`/fallback disable\` - Disable fallback system
-\`/fallback strategy text\` - Set fallback to text only
-\`/fallback strategy default_photo\` - Use default photo
-\`/fallback strategy skip\` - Skip menfess with photo errors
-\`/fallback notify on/off\` - Enable/disable admin notifications
+\`/setting boy [file_id]\` - Set photo template untuk #boy
+\`/setting girl [file_id]\` - Set photo template untuk #girl
+\`/setting status\` - Show current settings
+
+💡 **Cara mendapatkan file ID:**
+1. Kirim foto ke bot
+2. Bot akan reply dengan file ID
+3. Copy file ID dan gunakan command di atas
 
 🤖 AutoFess dan FSub by Vzoel Fox's`, { parse_mode: 'Markdown' });
     return;
@@ -634,40 +588,117 @@ bot.command('fallback', async (ctx) => {
   const value = args[1];
 
   switch (command) {
-    case 'enable':
-      PHOTO_FALLBACK.enabled = true;
-      await ctx.reply('✅ Photo fallback system enabled');
-      break;
+    case 'boy':
+      if (value) {
+        PHOTO_BOY = value;
+        await ctx.reply(`✅ Photo template untuk #boy berhasil diupdate!
 
-    case 'disable':
-      PHOTO_FALLBACK.enabled = false;
-      await ctx.reply('❌ Photo fallback system disabled');
-      break;
+📷 File ID: \`${value}\`
 
-    case 'strategy':
-      if (['text', 'default_photo', 'skip', 'retry'].includes(value)) {
-        PHOTO_FALLBACK.strategy = value;
-        await ctx.reply(`🔄 Fallback strategy changed to: ${value}`);
+Template akan digunakan untuk semua menfess dengan hashtag #boy.`);
       } else {
-        await ctx.reply('❌ Invalid strategy. Options: text, default_photo, skip, retry');
+        await ctx.reply('❌ File ID diperlukan. Format: /setting boy [file_id]');
       }
       break;
 
-    case 'notify':
-      if (value === 'on') {
-        PHOTO_FALLBACK.notifyAdmin = true;
-        await ctx.reply('🔔 Admin notifications enabled');
-      } else if (value === 'off') {
-        PHOTO_FALLBACK.notifyAdmin = false;
-        await ctx.reply('🔕 Admin notifications disabled');
+    case 'girl':
+      if (value) {
+        PHOTO_GIRL = value;
+        await ctx.reply(`✅ Photo template untuk #girl berhasil diupdate!
+
+📷 File ID: \`${value}\`
+
+Template akan digunakan untuk semua menfess dengan hashtag #girl.`);
       } else {
-        await ctx.reply('❌ Use: /fallback notify on or /fallback notify off');
+        await ctx.reply('❌ File ID diperlukan. Format: /setting girl [file_id]');
       }
+      break;
+
+    case 'status':
+      await ctx.reply(`📊 **Current Photo Settings:**
+
+👦 **Boy Photo:** ${PHOTO_BOY ? '✅ SET' : '❌ NOT SET'}
+👧 **Girl Photo:** ${PHOTO_GIRL ? '✅ SET' : '❌ NOT SET'}
+
+🔄 Template photos akan digunakan untuk semua menfess sesuai hashtag.`);
       break;
 
     default:
-      await ctx.reply('❌ Unknown command. Use /fallback to see available options.');
+      await ctx.reply('❌ Unknown command. Use /setting to see available options.');
   }
+});
+
+// Main text handler untuk menfess
+bot.on('text', async (ctx) => {
+  // Skip commands
+  if (ctx.message.text.startsWith('/')) {
+    return;
+  }
+
+  const userMessage = ctx.message.text;
+  const fromUser = ctx.from;
+
+  // Check force subscription first
+  if (!(await ensureSubscribed(ctx))) {
+    return;
+  }
+
+  // Validasi username wajib
+  if (!fromUser.username) {
+    await ctx.reply(`❌ Username Telegram diperlukan untuk menfess!
+
+📝 Cara setting username:
+1. Buka Settings Telegram
+2. Pilih Username
+3. Buat username unik
+4. Coba kirim menfess lagi
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
+    return;
+  }
+
+  // Validasi hashtag wajib
+  const hashtag = userMessage.includes('#boy') ? '#boy' : userMessage.includes('#girl') ? '#girl' : null;
+
+  if (!hashtag) {
+    await ctx.reply(`❌ Hashtag wajib untuk menfess!
+
+📝 Gunakan salah satu hashtag:
+• #boy - untuk menfess dari cowok
+• #girl - untuk menfess dari cewek
+
+Contoh: #boy cari teman ngobrol @${fromUser.username}
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
+    return;
+  }
+
+  // Validasi username dalam pesan (opsional tapi direkomendasikan)
+  if (!userMessage.includes('@')) {
+    await ctx.reply(`⚠️ Peringatan: Menfess tidak menyertakan username!
+
+💡 Untuk respons yang lebih baik, sertakan username kamu:
+Contoh: ${hashtag} looking for friends @${fromUser.username}
+
+Lanjutkan kirim menfess? Kirim ulang dengan format yang sama jika sudah yakin.
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
+    return;
+  }
+
+  const photoToSend = hashtag === '#boy' ? PHOTO_BOY : PHOTO_GIRL;
+  // Hapus sender ID untuk anonymity, hanya tampilkan pesan asli
+  const caption = userMessage;
+
+  enqueueMenfess(photoToSend, caption);
+
+  await ctx.reply(`✅ Menfess ${hashtag} berhasil masuk antrean!
+
+📤 Akan otomatis dikirim ke channel @Blackpearlbaseofficial
+⏰ Tunggu beberapa saat untuk pemrosesan
+👁️ Cek channel untuk melihat menfess kamu
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
 });
 
 // Enhanced command untuk cek status langganan manual
