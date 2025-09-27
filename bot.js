@@ -10,6 +10,17 @@ const PHOTO_GIRL = config.photoGirlId;
 const SEND_DELAY_MS = Number(config.sendDelayMs || 0);
 const FORCE_SUB_CHANNELS = Array.isArray(config.forceSubChannels) ? config.forceSubChannels : [];
 
+// Debug logging for configuration
+console.log('🔧 Bot Configuration:');
+console.log(`📺 CHANNEL_ID: ${CHANNEL_ID}`);
+console.log(`👦 PHOTO_BOY: ${PHOTO_BOY}`);
+console.log(`👧 PHOTO_GIRL: ${PHOTO_GIRL}`);
+console.log(`⏱️ SEND_DELAY_MS: ${SEND_DELAY_MS}`);
+console.log(`📋 FORCE_SUB_CHANNELS: ${FORCE_SUB_CHANNELS.length} channels`);
+FORCE_SUB_CHANNELS.forEach((channel, index) => {
+  console.log(`  ${index + 1}. ${channel.label} (${channel.id})`);
+});
+
 const pendingMenfess = [];
 let isSending = false;
 
