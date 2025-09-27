@@ -1,6 +1,6 @@
 const config = {
   botToken: '8305166785:AAEAQH2exa0CyJKWso78L8tDpDJOQkG9Iho',
-  channelId: 'https://t.me/Blackpearlbaseofficial',
+  channelId: '@Blackpearlbaseofficial',
   photoBoyId: '6244774387463081116',
   photoGirlId: '6244774387463081115',
   sendDelayMs: 2000,
