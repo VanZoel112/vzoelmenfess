@@ -1,8 +1,8 @@
 const config = {
   botToken: '8305166785:AAEAQH2exa0CyJKWso78L8tDpDJOQkG9Iho',
   channelId: '@Blackpearlbaseofficial',
-  photoBoyId: '6244774387463081116',
-  photoGirlId: '6244774387463081115',
+  photoBoyId: 'AgACAgIAAxkDAAIDMWcGxQjpTYVGPhVrFWR-V6iZO3C-AAL-5jEbLHaJS1VGZGb3P5xMAQADAgADeAADNgQ', // Replace with valid Telegram file ID
+  photoGirlId: 'AgACAgIAAxkDAAIDMWcGxQjpTYVGPhVrFWR-V6iZO3C-AAL-5jEbLHaJS1VGZGb3P5xMAQADAgADeAADNgQ', // Replace with valid Telegram file ID
   sendDelayMs: 2000,
   forceSubChannels: [
     {

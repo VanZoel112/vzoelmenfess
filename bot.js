@@ -275,12 +275,23 @@ async function processQueue() {
 
     try {
       console.log(`📤 Sending menfess to channel ${CHANNEL_ID}`);
+      console.log(`📷 Using photo ID: ${photoId}`);
       await bot.telegram.sendPhoto(CHANNEL_ID, photoId, {
         caption
       });
       console.log(`✅ Successfully sent menfess to channel`);
     } catch (error) {
       console.error('❌ Gagal mengirim menfess ke channel:', error);
+
+      // Specific error handling for invalid file IDs
+      if (error.response?.description?.includes('wrong remote file identifier')) {
+        console.error('💡 SOLUSI: Photo file ID tidak valid!');
+        console.error('📝 Cara mendapatkan file ID yang benar:');
+        console.error('   1. Kirim foto ke bot via private chat');
+        console.error('   2. Bot akan reply dengan file ID yang benar');
+        console.error('   3. Copy file ID tersebut ke config.js');
+        console.error('   4. Restart bot');
+      }
     }
 
     if (pendingMenfess.length > 0 && SEND_DELAY_MS > 0) {
@@ -502,6 +513,26 @@ Silakan kirim menfess Anda sekarang! 😊
     console.error('Error in retry_fsub_check:', error);
     await ctx.answerCbQuery('Terjadi kesalahan. Silakan coba lagi.');
   }
+});
+
+// Command untuk mendapatkan file ID dari foto
+bot.on('photo', async (ctx) => {
+  const photo = ctx.message.photo;
+  const largestPhoto = photo[photo.length - 1]; // Get highest resolution
+  const fileId = largestPhoto.file_id;
+
+  await ctx.reply(`📷 File ID foto ini adalah:
+\`${fileId}\`
+
+💡 Copy file ID di atas dan masukkan ke config.js:
+- Untuk foto boy: photoBoyId
+- Untuk foto girl: photoGirlId
+
+🔄 Setelah update config, restart bot.
+
+🤖 AutoFess dan FSub by Vzoel Fox's`, {
+    parse_mode: 'Markdown'
+  });
 });
 
 // Enhanced command untuk cek status langganan manual
