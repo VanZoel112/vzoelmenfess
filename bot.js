@@ -391,6 +391,102 @@ bot.help(async (ctx) => {
   await ctx.reply(helpMessage);
 });
 
+// ROBUST SOLUTION: Command handlers BEFORE text handlers (Official Telegraf pattern)
+bot.command('setting', async (ctx) => {
+  console.log(`🔧 /setting command received from user ${ctx.from.id} (@${ctx.from.username})`);
+  console.log(`👑 OWNER_ID in config: ${OWNER_ID}`);
+  console.log(`🔍 User ID matches owner: ${ctx.from.id === OWNER_ID}`);
+
+  if (ctx.from.id !== OWNER_ID) {
+    console.log(`❌ Access denied - user ${ctx.from.id} is not owner (${OWNER_ID})`);
+    await ctx.reply('❌ Command ini hanya untuk owner bot.');
+    return;
+  }
+
+  console.log(`✅ Owner access granted for /setting command`);
+  const args = ctx.message.text.split(' ').slice(1);
+
+  if (args.length === 0) {
+    await ctx.reply(`⚙️ **Bot Photo Settings:**
+
+👦 **Photo Boy ID:**
+\`${PHOTO_BOY}\`
+
+👧 **Photo Girl ID:**
+\`${PHOTO_GIRL}\`
+
+📝 **Available Commands:**
+\`/setting boy [file_id]\` - Set photo template untuk #boy
+\`/setting girl [file_id]\` - Set photo template untuk #girl
+\`/setting status\` - Show current settings
+
+💡 **Cara mendapatkan file ID:**
+1. Kirim foto ke bot
+2. Bot akan reply dengan file ID
+3. Copy file ID dan gunakan command di atas
+
+🤖 AutoFess dan FSub by Vzoel Fox's`, { parse_mode: 'Markdown' });
+    return;
+  }
+
+  const command = args[0];
+  const value = args[1];
+
+  switch (command) {
+    case 'boy':
+      if (value) {
+        PHOTO_BOY = value;
+        await ctx.reply(`✅ Photo template untuk #boy berhasil diupdate!
+
+📷 File ID: \`${value}\`
+
+Template akan digunakan untuk semua menfess dengan hashtag #boy.`);
+      } else {
+        await ctx.reply('❌ File ID diperlukan. Format: /setting boy [file_id]');
+      }
+      break;
+
+    case 'girl':
+      if (value) {
+        PHOTO_GIRL = value;
+        await ctx.reply(`✅ Photo template untuk #girl berhasil diupdate!
+
+📷 File ID: \`${value}\`
+
+Template akan digunakan untuk semua menfess dengan hashtag #girl.`);
+      } else {
+        await ctx.reply('❌ File ID diperlukan. Format: /setting girl [file_id]');
+      }
+      break;
+
+    case 'status':
+      await ctx.reply(`📊 **Current Photo Settings:**
+
+👦 **Boy Photo:** ${PHOTO_BOY ? '✅ SET' : '❌ NOT SET'}
+👧 **Girl Photo:** ${PHOTO_GIRL ? '✅ SET' : '❌ NOT SET'}
+
+🔄 Template photos akan digunakan untuk semua menfess sesuai hashtag.`);
+      break;
+
+    default:
+      await ctx.reply('❌ Unknown command. Use /setting to see available options.');
+  }
+});
+
+bot.command('cekfsub', async (ctx) => {
+  const subscribed = await ensureSubscribed(ctx);
+  if (subscribed) {
+    await ctx.reply(`✅ Status Keanggotaan: LENGKAP
+
+Anda sudah bergabung di semua channel yang diperlukan!
+Silakan kirim menfess Anda dengan hashtag #boy atau #girl.
+
+Contoh: #boy need fwb @usernamekamu!
+
+🤖 AutoFess dan FSub by Vzoel Fox's`);
+  }
+});
+
 bot.on('text', async (ctx) => {
   // Skip commands - let command handlers process them
   if (ctx.message.text.startsWith('/')) {
@@ -567,90 +663,6 @@ bot.use((ctx, next) => {
   return next();
 });
 
-// Owner-only setting command untuk manage photo templates
-bot.command('setting', async (ctx) => {
-  console.log(`🔧 /setting command received from user ${ctx.from.id} (@${ctx.from.username})`);
-  console.log(`👑 OWNER_ID in config: ${OWNER_ID}`);
-  console.log(`🔍 User ID matches owner: ${ctx.from.id === OWNER_ID}`);
-
-  // Check if user is owner
-  if (ctx.from.id !== OWNER_ID) {
-    console.log(`❌ Access denied - user ${ctx.from.id} is not owner (${OWNER_ID})`);
-    await ctx.reply('❌ Command ini hanya untuk owner bot.');
-    return;
-  }
-
-  console.log(`✅ Owner access granted for /setting command`);
-
-  const args = ctx.message.text.split(' ').slice(1);
-
-  if (args.length === 0) {
-    // Show current photo settings
-    await ctx.reply(`⚙️ **Bot Photo Settings:**
-
-👦 **Photo Boy ID:**
-\`${PHOTO_BOY}\`
-
-👧 **Photo Girl ID:**
-\`${PHOTO_GIRL}\`
-
-📝 **Available Commands:**
-\`/setting boy [file_id]\` - Set photo template untuk #boy
-\`/setting girl [file_id]\` - Set photo template untuk #girl
-\`/setting status\` - Show current settings
-
-💡 **Cara mendapatkan file ID:**
-1. Kirim foto ke bot
-2. Bot akan reply dengan file ID
-3. Copy file ID dan gunakan command di atas
-
-🤖 AutoFess dan FSub by Vzoel Fox's`, { parse_mode: 'Markdown' });
-    return;
-  }
-
-  const command = args[0];
-  const value = args[1];
-
-  switch (command) {
-    case 'boy':
-      if (value) {
-        PHOTO_BOY = value;
-        await ctx.reply(`✅ Photo template untuk #boy berhasil diupdate!
-
-📷 File ID: \`${value}\`
-
-Template akan digunakan untuk semua menfess dengan hashtag #boy.`);
-      } else {
-        await ctx.reply('❌ File ID diperlukan. Format: /setting boy [file_id]');
-      }
-      break;
-
-    case 'girl':
-      if (value) {
-        PHOTO_GIRL = value;
-        await ctx.reply(`✅ Photo template untuk #girl berhasil diupdate!
-
-📷 File ID: \`${value}\`
-
-Template akan digunakan untuk semua menfess dengan hashtag #girl.`);
-      } else {
-        await ctx.reply('❌ File ID diperlukan. Format: /setting girl [file_id]');
-      }
-      break;
-
-    case 'status':
-      await ctx.reply(`📊 **Current Photo Settings:**
-
-👦 **Boy Photo:** ${PHOTO_BOY ? '✅ SET' : '❌ NOT SET'}
-👧 **Girl Photo:** ${PHOTO_GIRL ? '✅ SET' : '❌ NOT SET'}
-
-🔄 Template photos akan digunakan untuk semua menfess sesuai hashtag.`);
-      break;
-
-    default:
-      await ctx.reply('❌ Unknown command. Use /setting to see available options.');
-  }
-});
 
 // Main text handler untuk menfess
 bot.on('text', async (ctx) => {
