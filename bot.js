@@ -281,16 +281,26 @@ async function processQueue() {
       });
       console.log(`✅ Successfully sent menfess to channel`);
     } catch (error) {
-      console.error('❌ Gagal mengirim menfess ke channel:', error);
+      console.error('❌ Gagal mengirim menfess ke channel dengan foto:', error);
 
-      // Specific error handling for invalid file IDs
-      if (error.response?.description?.includes('wrong remote file identifier')) {
-        console.error('💡 SOLUSI: Photo file ID tidak valid!');
-        console.error('📝 Cara mendapatkan file ID yang benar:');
-        console.error('   1. Kirim foto ke bot via private chat');
-        console.error('   2. Bot akan reply dengan file ID yang benar');
-        console.error('   3. Copy file ID tersebut ke config.js');
-        console.error('   4. Restart bot');
+      // Fallback: Try sending as text message without photo
+      if (error.response?.description?.includes('wrong file identifier') ||
+          error.response?.description?.includes('wrong remote file identifier')) {
+        console.log('🔄 Fallback: Mengirim sebagai pesan teks tanpa foto...');
+
+        try {
+          await bot.telegram.sendMessage(CHANNEL_ID, caption);
+          console.log(`✅ Berhasil mengirim menfess sebagai text (tanpa foto)`);
+
+          console.error('💡 PERBAIKI: Photo file ID tidak valid!');
+          console.error('📝 Cara mendapatkan file ID yang benar:');
+          console.error('   1. Kirim foto ke bot via private chat');
+          console.error('   2. Bot akan reply dengan file ID yang benar');
+          console.error('   3. Copy file ID tersebut ke config.js');
+          console.error('   4. Restart bot');
+        } catch (textError) {
+          console.error('❌ Gagal mengirim sebagai text juga:', textError);
+        }
       }
     }
 
