@@ -40,6 +40,8 @@ bot.use(async (ctx, next) => {
 
   console.log(`✅ Processing private message from user ${ctx.from?.id} (@${ctx.from?.username})`);
   console.log(`📝 Message: ${ctx.message?.text || 'non-text message'}`);
+  console.log(`🔍 Message type: ${ctx.updateType}, Update subtype: ${ctx.updateSubTypes}`);
+
   await next(); // Continue to next middleware/handler
 });
 
@@ -555,6 +557,14 @@ bot.on('photo', async (ctx) => {
 🤖 AutoFess dan FSub by Vzoel Fox's`, {
     parse_mode: 'Markdown'
   });
+});
+
+// Debug: Log all commands
+bot.use((ctx, next) => {
+  if (ctx.message?.text?.startsWith('/')) {
+    console.log(`🎯 Command detected: ${ctx.message.text}`);
+  }
+  return next();
 });
 
 // Owner-only setting command untuk manage photo templates
