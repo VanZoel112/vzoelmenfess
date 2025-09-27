@@ -38,6 +38,8 @@ bot.use(async (ctx, next) => {
     return; // Don't respond to group/channel messages
   }
 
+  console.log(`✅ Processing private message from user ${ctx.from?.id} (@${ctx.from?.username})`);
+  console.log(`📝 Message: ${ctx.message?.text || 'non-text message'}`);
   await next(); // Continue to next middleware/handler
 });
 
@@ -388,6 +390,11 @@ bot.help(async (ctx) => {
 });
 
 bot.on('text', async (ctx) => {
+  // Skip commands - let command handlers process them
+  if (ctx.message.text.startsWith('/')) {
+    return;
+  }
+
   const userMessage = ctx.message.text;
   const fromUser = ctx.from;
 
@@ -552,11 +559,18 @@ bot.on('photo', async (ctx) => {
 
 // Owner-only setting command untuk manage photo templates
 bot.command('setting', async (ctx) => {
+  console.log(`🔧 /setting command received from user ${ctx.from.id} (@${ctx.from.username})`);
+  console.log(`👑 OWNER_ID in config: ${OWNER_ID}`);
+  console.log(`🔍 User ID matches owner: ${ctx.from.id === OWNER_ID}`);
+
   // Check if user is owner
   if (ctx.from.id !== OWNER_ID) {
+    console.log(`❌ Access denied - user ${ctx.from.id} is not owner (${OWNER_ID})`);
     await ctx.reply('❌ Command ini hanya untuk owner bot.');
     return;
   }
+
+  console.log(`✅ Owner access granted for /setting command`);
 
   const args = ctx.message.text.split(' ').slice(1);
 
