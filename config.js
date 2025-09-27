@@ -1,15 +1,15 @@
 const config = {
   botToken: '8305166785:AAEAQH2exa0CyJKWso78L8tDpDJOQkG9Iho',
-  channelId: '@VZLfx',
+  channelId: 'https://t.me/Blackpearlbaseofficial',
   photoBoyId: '6244774387463081116',
   photoGirlId: '6244774387463081115',
   sendDelayMs: 2000,
   forceSubChannels: [
     {
-      id: -1002933327629,
-      link: 'https://t.me/VZLfx',
-      label: 'VZL Channel',
-      buttonText: 'Join VZL'
+      id: -1001722785066,
+      link: 'https://t.me/Blackpearlbaseofficial',
+      label: 'MENFESS',
+      buttonText: 'AUTO MENFESS'
     },
     {
       id: -1001999857761,
