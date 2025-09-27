@@ -9,6 +9,7 @@ const PHOTO_BOY = config.photoBoyId;
 const PHOTO_GIRL = config.photoGirlId;
 const SEND_DELAY_MS = Number(config.sendDelayMs || 0);
 const FORCE_SUB_CHANNELS = Array.isArray(config.forceSubChannels) ? config.forceSubChannels : [];
+const PHOTO_FALLBACK = config.photoFallback || { enabled: false, strategy: 'text' };
 
 // Debug logging for configuration
 console.log('🔧 Bot Configuration:');
@@ -16,6 +17,7 @@ console.log(`📺 CHANNEL_ID: ${CHANNEL_ID}`);
 console.log(`👦 PHOTO_BOY: ${PHOTO_BOY}`);
 console.log(`👧 PHOTO_GIRL: ${PHOTO_GIRL}`);
 console.log(`⏱️ SEND_DELAY_MS: ${SEND_DELAY_MS}`);
+console.log(`🛡️ PHOTO_FALLBACK: ${PHOTO_FALLBACK.enabled ? 'ENABLED' : 'DISABLED'} (strategy: ${PHOTO_FALLBACK.strategy})`);
 console.log(`📋 FORCE_SUB_CHANNELS: ${FORCE_SUB_CHANNELS.length} channels`);
 FORCE_SUB_CHANNELS.forEach((channel, index) => {
   console.log(`  ${index + 1}. ${channel.label} (${channel.id})`);
@@ -263,6 +265,59 @@ async function wait(ms) {
   });
 }
 
+// Function untuk handle photo fallback strategies
+async function handlePhotoFallback(caption, originalPhotoId, error) {
+  if (!PHOTO_FALLBACK.enabled) {
+    console.log('🚫 Photo fallback disabled, skipping menfess');
+    return false;
+  }
+
+  console.log(`🔄 Executing fallback strategy: ${PHOTO_FALLBACK.strategy}`);
+
+  switch (PHOTO_FALLBACK.strategy) {
+    case 'text':
+      try {
+        await bot.telegram.sendMessage(CHANNEL_ID, caption);
+        console.log(`✅ Fallback successful: Sent as text message`);
+        return true;
+      } catch (textError) {
+        console.error('❌ Text fallback failed:', textError);
+        return false;
+      }
+
+    case 'default_photo':
+      try {
+        const defaultUrl = PHOTO_FALLBACK.defaultPhotoUrl || 'https://via.placeholder.com/400x400/1e3a8a/ffffff?text=MENFESS';
+        await bot.telegram.sendPhoto(CHANNEL_ID, defaultUrl, { caption });
+        console.log(`✅ Fallback successful: Sent with default photo`);
+        return true;
+      } catch (defaultPhotoError) {
+        console.error('❌ Default photo fallback failed, trying text:', defaultPhotoError);
+        // Fallback to text if default photo fails
+        try {
+          await bot.telegram.sendMessage(CHANNEL_ID, caption);
+          console.log(`✅ Secondary fallback: Sent as text`);
+          return true;
+        } catch (textError) {
+          console.error('❌ All fallbacks failed:', textError);
+          return false;
+        }
+      }
+
+    case 'skip':
+      console.log(`⏭️ Skipping menfess due to photo error (strategy: skip)`);
+      return true; // Consider as successful skip
+
+    case 'retry':
+      console.log(`🔄 Retry strategy not implemented in this context`);
+      return false;
+
+    default:
+      console.error(`❌ Unknown fallback strategy: ${PHOTO_FALLBACK.strategy}`);
+      return false;
+  }
+}
+
 async function processQueue() {
   if (isSending) {
     return;
@@ -283,24 +338,29 @@ async function processQueue() {
     } catch (error) {
       console.error('❌ Gagal mengirim menfess ke channel dengan foto:', error);
 
-      // Fallback: Try sending as text message without photo
-      if (error.response?.description?.includes('wrong file identifier') ||
-          error.response?.description?.includes('wrong remote file identifier')) {
-        console.log('🔄 Fallback: Mengirim sebagai pesan teks tanpa foto...');
+      // Check if it's a photo-related error and handle fallback
+      const isPhotoError = error.response?.description?.includes('wrong file identifier') ||
+                          error.response?.description?.includes('wrong remote file identifier') ||
+                          error.response?.description?.includes('wrong padding');
 
-        try {
-          await bot.telegram.sendMessage(CHANNEL_ID, caption);
-          console.log(`✅ Berhasil mengirim menfess sebagai text (tanpa foto)`);
+      if (isPhotoError) {
+        const fallbackSuccess = await handlePhotoFallback(caption, photoId, error);
 
-          console.error('💡 PERBAIKI: Photo file ID tidak valid!');
+        if (!fallbackSuccess) {
+          console.error('❌ All fallback strategies failed for this menfess');
+        }
+
+        // Notify admin if configured
+        if (PHOTO_FALLBACK.notifyAdmin) {
+          console.error('💡 ADMIN: Photo file ID needs attention!');
           console.error('📝 Cara mendapatkan file ID yang benar:');
           console.error('   1. Kirim foto ke bot via private chat');
           console.error('   2. Bot akan reply dengan file ID yang benar');
           console.error('   3. Copy file ID tersebut ke config.js');
           console.error('   4. Restart bot');
-        } catch (textError) {
-          console.error('❌ Gagal mengirim sebagai text juga:', textError);
         }
+      } else {
+        console.error('❌ Non-photo related error, skipping fallback');
       }
     }
 
@@ -543,6 +603,71 @@ bot.on('photo', async (ctx) => {
 🤖 AutoFess dan FSub by Vzoel Fox's`, {
     parse_mode: 'Markdown'
   });
+});
+
+// Admin commands untuk manage fallback settings
+bot.command('fallback', async (ctx) => {
+  const args = ctx.message.text.split(' ').slice(1);
+
+  if (args.length === 0) {
+    // Show current fallback status
+    await ctx.reply(`🛡️ **Photo Fallback Settings:**
+
+📊 **Status:** ${PHOTO_FALLBACK.enabled ? '✅ ENABLED' : '❌ DISABLED'}
+🔄 **Strategy:** ${PHOTO_FALLBACK.strategy}
+🔔 **Admin Notify:** ${PHOTO_FALLBACK.notifyAdmin ? 'YES' : 'NO'}
+🖼️ **Default Photo:** ${PHOTO_FALLBACK.defaultPhotoUrl ? 'SET' : 'NOT SET'}
+
+📝 **Available Commands:**
+\`/fallback enable\` - Enable fallback system
+\`/fallback disable\` - Disable fallback system
+\`/fallback strategy text\` - Set fallback to text only
+\`/fallback strategy default_photo\` - Use default photo
+\`/fallback strategy skip\` - Skip menfess with photo errors
+\`/fallback notify on/off\` - Enable/disable admin notifications
+
+🤖 AutoFess dan FSub by Vzoel Fox's`, { parse_mode: 'Markdown' });
+    return;
+  }
+
+  const command = args[0];
+  const value = args[1];
+
+  switch (command) {
+    case 'enable':
+      PHOTO_FALLBACK.enabled = true;
+      await ctx.reply('✅ Photo fallback system enabled');
+      break;
+
+    case 'disable':
+      PHOTO_FALLBACK.enabled = false;
+      await ctx.reply('❌ Photo fallback system disabled');
+      break;
+
+    case 'strategy':
+      if (['text', 'default_photo', 'skip', 'retry'].includes(value)) {
+        PHOTO_FALLBACK.strategy = value;
+        await ctx.reply(`🔄 Fallback strategy changed to: ${value}`);
+      } else {
+        await ctx.reply('❌ Invalid strategy. Options: text, default_photo, skip, retry');
+      }
+      break;
+
+    case 'notify':
+      if (value === 'on') {
+        PHOTO_FALLBACK.notifyAdmin = true;
+        await ctx.reply('🔔 Admin notifications enabled');
+      } else if (value === 'off') {
+        PHOTO_FALLBACK.notifyAdmin = false;
+        await ctx.reply('🔕 Admin notifications disabled');
+      } else {
+        await ctx.reply('❌ Use: /fallback notify on or /fallback notify off');
+      }
+      break;
+
+    default:
+      await ctx.reply('❌ Unknown command. Use /fallback to see available options.');
+  }
 });
 
 // Enhanced command untuk cek status langganan manual

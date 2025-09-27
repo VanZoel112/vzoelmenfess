@@ -4,6 +4,15 @@ const config = {
   photoBoyId: 'AgACAgIAAxkDAAIDMWcGxQjpTYVGPhVrFWR-V6iZO3C-AAL-5jEbLHaJS1VGZGb3P5xMAQADAgADeAADNgQ', // Replace with valid Telegram file ID
   photoGirlId: 'AgACAgIAAxkDAAIDMWcGxQjpTYVGPhVrFWR-V6iZO3C-AAL-5jEbLHaJS1VGZGb3P5xMAQADAgADeAADNgQ', // Replace with valid Telegram file ID
   sendDelayMs: 2000,
+
+  // Fallback settings untuk photo errors
+  photoFallback: {
+    enabled: true, // Enable/disable fallback system
+    strategy: 'text', // Options: 'text', 'default_photo', 'skip', 'retry'
+    defaultPhotoUrl: 'https://via.placeholder.com/400x400/1e3a8a/ffffff?text=MENFESS', // Fallback photo URL
+    retryAttempts: 2, // Jumlah retry attempts sebelum fallback
+    notifyAdmin: true // Notify admin when fallback triggered
+  },
   forceSubChannels: [
     {
       id: -1001722785066,
