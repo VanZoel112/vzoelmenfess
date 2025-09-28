@@ -2,8 +2,8 @@ const config = {
   botToken: '8305166785:AAEAQH2exa0CyJKWso78L8tDpDJOQkG9Iho',
   ownerId: 8024282347, // Owner user ID untuk akses /setting command
   channelId: '@Blackpearlbaseofficial',
-  photoBoyId: 'AgACAgIAAxkDAAIDMWcGxQjpTYVGPhVrFWR-V6iZO3C-AAL-5jEbLHaJS1VGZGb3P5xMAQADAgADeAADNgQ', // Replace with valid Telegram file ID
-  photoGirlId: 'AgACAgIAAxkDAAIDMWcGxQjpTYVGPhVrFWR-V6iZO3C-AAL-5jEbLHaJS1VGZGb3P5xMAQADAgADeAADNgQ', // Replace with valid Telegram file ID
+  photoBoyId: 'AgACAgUAAxkBAAN5aNiuVI2PZpBjbhWFA1GdeInAr2UAAuLKMRt2pclWcteKyd-rrZwBAAMCAAN5AAM2BA', // Replace with valid Telegram file ID
+  photoGirlId: 'AgACAgUAAxkBAAN7aNiufm2zbAj0-ihYWfOZo5a8_HAAAuPKMRt2pclW0CI7exN8E-8BAAMCAAN5AAM2BA', // Replace with valid Telegram file ID
   sendDelayMs: 2000,
 
   forceSubChannels: [
